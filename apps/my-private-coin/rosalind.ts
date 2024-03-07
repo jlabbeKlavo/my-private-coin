@@ -1,10 +1,10 @@
 
 import { JSON } from '@klave/sdk';
 
-export enum AcctTp {
-    Personal = "Personal",
-    Business = "Business",
-}
+// export enum AcctTp {
+//     Personal = "Personal",
+//     Business = "Business",
+// }
 
 @serializable
 export class Allowed {
@@ -23,12 +23,12 @@ export class Allowed {
 
 @serializable
 export class Account {    
-    AccountType: AcctTp;    
+    AccountType: string;    
     balance: number;
     allowed: Allowed[];
 
     constructor() {
-        this.AccountType = AcctTp.Personal;
+        this.AccountType = "Personal";
         this.balance = 0;
         this.allowed = [];
     }

@@ -1,6 +1,6 @@
 import { Notifier, Ledger, JSON, Crypto, Context } from '@klave/sdk';
 import { ErrorMessage } from './types';
-import { AcctTp, Account, Allowed } from './rosalind';
+import { Account } from './rosalind';
 import { Currency } from './eipx';
 
 const DefaultCoinTable = "DefaultCoinTable";
@@ -407,11 +407,11 @@ export function burn(from: string, value: number): void {
 }
 
 /**
- * @transaction burn tokens from the spender's allowance for sender account
- * @param address - the address of the spender
+ * @transaction burn tokens from the spender's allowance for transaction sender account
+ * @param spender - the address of the spender
  * @param value - the amount to be burned
  */
-export function burnFrom(address: string, value: number): void {
+export function burnFrom(spender: string, value: number): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
     if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
@@ -419,39 +419,49 @@ export function burnFrom(address: string, value: number): void {
             message: `Currency not found`
         });
     }
-    else {
-        let currencyDetails = JSON.parse<Currency>(currencyInfo);
-        currencyDetails.totalSupply -= value;
-        if (currencyDetails.totalSupply < 0) {
-            currencyDetails.totalSupply = 0;
-        }
-    
-        let [fromExists, fromAccountDetails] = recoverRegistredAccounts(Context.get('sender'));
-        if (!fromExists)
+    else {    
+        let fromAccount = recoverRegistredAccounts(Context.get('sender'));
+        if (!fromAccount.exists)
             return;
 
-        if (fromAccountDetails.balance < value) {
+        let index = fromAccount.details.findAllowed(spender);
+        if (index === -1) {        
+            Notifier.sendJson<ErrorMessage>({
+                success: false,
+                message: `No spender allowance found`
+            });
+            return;
+        }
+                    
+        if (fromAccount.details.allowed[index].value < value) {            
+            Notifier.sendJson<ErrorMessage>({
+                success: false,
+                message: `Insufficient spender allowance`
+            });        
+            return;    
+        }
+        if (fromAccount.details.balance < value) {            
             Notifier.sendJson<ErrorMessage>({
                 success: false,
                 message: `Insufficient balance`
-            });
-        }        
-        if (fromAccountDetails.allowed[address] < value) {
+            });        
+            return;    
+        }
+        let currencyDetails = JSON.parse<Currency>(currencyInfo);         
+        if (currencyDetails.totalSupply < value) {
             Notifier.sendJson<ErrorMessage>({
                 success: false,
-                message: `Insufficient allowance`
-            });
-        }        
-        fromAccountDetails.balance -= value;
-        if (fromAccountDetails.balance < 0) {
-            fromAccountDetails.balance = 0;
+                message: `Insufficient total supply`
+            });                    
         }
-        fromAccountDetails.allowed[address] -= value;
-        if (fromAccountDetails.allowed[address] < 0) {
-            fromAccountDetails.allowed[address] = 0;
-        }
-        Ledger.getTable(AccountsTable).set(Context.get('sender'), JSON.stringify(fromAccountDetails));
+        currencyDetails.totalSupply -= value;
         Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(currencyDetails));
+
+        fromAccount.details.allowed[index].value -= value;
+        fromAccount.details.balance -= value;        
+        Ledger.getTable(AccountsTable).set(Context.get('sender'), JSON.stringify(fromAccount.details));
+
+
         Notifier.sendJson<ErrorMessage>({
             success: true,
             message: `Allowance burn successful`
