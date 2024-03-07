@@ -84,7 +84,7 @@ export function createCoin(input: Currency): void {
 
     Notifier.sendString(currencyDetails.accounts.length.toString());
 
-    // Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(currencyDetails));
+    Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(currencyDetails));
     Notifier.sendJson<ErrorMessage>({
         success: true,
         message: `Currency ${currencyDetails.name} created successfully`
