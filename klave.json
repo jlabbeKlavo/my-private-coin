@@ -1,0 +1,14 @@
+{
+    "version": "1",
+    "branches": [
+        "*"
+    ],
+    "applications": [
+        {
+            "name": "My private coin",
+            "slug": "my-private-coin",
+            "version": "0.0.1",
+            "rootDir": "/apps/my-private-coin"
+        }
+    ]
+}
