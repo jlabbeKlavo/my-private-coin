@@ -155,7 +155,7 @@ export function balanceOf(owner: string): string {
 
 /** 
  * @transaction 
- * @param {TransferInput} - A parsed input argument containing the "to" address and the value to be transferred
+ * @param {TransferInput} - A parsed input argument containing the "to" address and the value to be paid
  *  */
 export function transfer(input: TransferInput): void {
     let from = Context.get('sender');
@@ -186,7 +186,7 @@ export function transfer(input: TransferInput): void {
 
 /** 
  * @transaction
- * @param {ApproveInput} - A parsed input argument containing the address of the spender and the value to be approved for allowance
+ * @param {ApproveInput} - A parsed input argument containing the address of the spender and the value to be credited
  *  */
 export function approve(input: ApproveInput): void {
     let from = Context.get('sender');
