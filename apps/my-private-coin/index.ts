@@ -69,7 +69,7 @@ export function createCoin(input: Currency): void {
         return;
     }
 
-    let key = Crypto.getKey("Default");
+    let key = Crypto.ECDSA.generateKey(input.name);
     if (key === null) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
@@ -77,7 +77,8 @@ export function createCoin(input: Currency): void {
         });
         return;
     }
-    input.id = key.name;    
+    input.id = key.name;
+    input.publicKey = key.getPublicKey().getPem();
     input.accounts.push(Context.get('sender'));
 
     Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(input));
