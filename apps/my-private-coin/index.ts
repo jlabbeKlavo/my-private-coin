@@ -69,22 +69,25 @@ export function createCoin(input: Currency): void {
         return;
     }
 
+    let currencyDetails = new Currency(input.name, input.symbol, input.totalSupply);
+
     let key = Crypto.ECDSA.generateKey(input.name);
     Notifier.sendString(key.name);
-    input.id = key.name;
+    currencyDetails.id = key.name;
 
     Notifier.sendString(key.getPublicKey().getPem());
-    input.publicKey = key.getPublicKey().getPem();
+    currencyDetails.publicKey = key.getPublicKey().getPem();
 
-    // Notifier.sendString(Context.get('sender'));    
-    // input.accounts.push(Context.get('sender'));
+    let ctx_sender = Context.get('sender');
+    Notifier.sendString(ctx_sender);    
+    currencyDetails.accounts.push(ctx_sender);
 
-    // Notifier.sendString(input.accounts.length.toString());
+    Notifier.sendString(currencyDetails.accounts.length.toString());
 
-    // Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(input));
+    // Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(currencyDetails));
     Notifier.sendJson<ErrorMessage>({
         success: true,
-        message: `Currency ${input.name} created successfully`
+        message: `Currency ${currencyDetails.name} created successfully`
     });
 }
 
