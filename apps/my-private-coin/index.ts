@@ -59,7 +59,9 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
  *  */
 export function createCoin(input: Currency): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
-    if (currencyInfo.length !== 0) {                    
+    if (currencyInfo.length === 0) {                    
+    }
+    else {
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Currency already exists`
