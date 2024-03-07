@@ -33,7 +33,7 @@ export class Account {
         this.allowed = [];
     }
 
-    addAllowed(spender: string, value: number) {
+    addAllowed(spender: string, value: number): void {
         this.allowed.push(new Allowed(spender, value));
     }
 
