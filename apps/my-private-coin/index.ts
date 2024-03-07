@@ -55,39 +55,52 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
 
 /** 
  * @transaction
+ * @param {Currency} input - A parsed input argument
+ *  */
+export function createCoin(input: Currency): void {
+    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
+    if (currencyInfo.length !== 0) {                    
+        Notifier.sendJson<ErrorMessage>({
+            success: false,
+            message: `Currency already exists`
+        });
+        return;
+    }
+
+    let key = Crypto.getKey("Default");
+    if (key === null) {
+        Notifier.sendJson<ErrorMessage>({
+            success: false,
+            message: `Key cannot be created`
+        });
+        return;
+    }
+    input.id = key.name;    
+    input.accounts.push(Context.get('sender'));
+
+    Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(input));
+
+    Notifier.sendJson<ErrorMessage>({
+        success: true,
+        message: `Currency ${input.name} created successfully`
+    });
+}
+
+/** 
+ * @transaction
  * @param {Account} input - A parsed input argument
  *  */
 export function openAccount(accountInfo: Account): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
 
-    let currencyDetails = new Currency("", "", "", 0);    
     if (currencyInfo.length === 0) {                    
-        let key = Crypto.getKey("Default");
-        if (key === null) {
-            Notifier.sendJson<ErrorMessage>({
-                success: false,
-                message: `Key cannot be created`
-            });
-            return;
-        }
-        currencyDetails.id = key.name;
-        currencyDetails.name = "Default";
-        currencyDetails.symbol = "DEF";
-        currencyDetails.totalSupply = 100000;
-        currencyDetails.accounts = [];               
-        currencyDetails.accounts.push(Context.get('sender'));
-
-        Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(currencyDetails));
-
         Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Currency ${currencyDetails.name} created successfully`
+            success: false,
+            message: `Currency not found`
         });
+        return;
     }            
-    else {    
-        currencyDetails = JSON.parse<Currency>(currencyInfo);
-    }
-
+    let currencyDetails = JSON.parse<Currency>(currencyInfo);
     let account = Ledger.getTable(AccountsTable).get(Context.get('sender'));
     if (account.length === 0) {
         let accountDetails = new Account();
@@ -109,7 +122,6 @@ export function openAccount(accountInfo: Account): void {
 
 /** 
  * @query return total supply of the currency
- * @param {Account} input - A parsed input argument
  *  */
 export function totalSupply(): string {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
@@ -128,7 +140,7 @@ export function totalSupply(): string {
 
 /** 
  * @query return balances of the currency
- * @param {Account} input - A parsed input argument
+ * @param {string} owner - the address of the owner, takes the sender's address if not provided
  *  */
 export function balanceOf(owner: string): string {
     if (owner === "") {
@@ -143,6 +155,7 @@ export function balanceOf(owner: string): string {
 
 /** 
  * @transaction 
+ * @param {TransferInput} - A parsed input argument containing the "to" address and the value to be transferred
  *  */
 export function transfer(input: TransferInput): void {
     let from = Context.get('sender');
@@ -173,7 +186,7 @@ export function transfer(input: TransferInput): void {
 
 /** 
  * @transaction
- * @param ApproveInput - A parsed input argument containing the spender and the value
+ * @param {ApproveInput} - A parsed input argument containing the address of the spender and the value to be approved for allowance
  *  */
 export function approve(input: ApproveInput): void {
     let from = Context.get('sender');
@@ -197,9 +210,7 @@ export function approve(input: ApproveInput): void {
 
 /** 
  * @transaction
- * @param from - the address to transfer from
- * @param to - the address to transfer to
- * @param value - the amount to be transferred
+ * @param {TransferFromInput} - A parsed input argument containing the "from" address, the "to" address and the value to be transferred
  *  */
 export function transferFrom(input: TransferFromInput): void {
     let fromAccount = recoverRegisteredAccounts(input.from);
@@ -241,8 +252,7 @@ export function transferFrom(input: TransferFromInput): void {
 
 /** 
  * @query 
- * @param owner 
- * @param spender 
+ * @param {AllowanceInput} - A parsed input argument containing the address of the owner and the address of the spender
  *  */
 export function allowance(input: AllowanceInput): string {
     let fromAccount = recoverRegisteredAccounts(input.owner);
@@ -263,8 +273,7 @@ export function allowance(input: AllowanceInput): string {
 
 /**
  * @query increase the amount which spender is still allowed to withdraw from owner
- * @param spender - the address which will spend the funds
- * @param addedValue - the amount of tokens to be added
+ * @param {IncreaseAllowanceInput} - A parsed input argument containing the address of the spender and the amount to be added
  */
 export function increaseAllowance(input: IncreaseAllowanceInput): void {
     let from = Context.get('sender');
@@ -300,8 +309,7 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
 
 /**
  * @query decrease the amount which spender is still allowed to withdraw from owner
- * @param spender - the address which will spend the funds
- * @param subtractedValue - the amount of tokens to be subtracted
+ * @param {DecreaseAllowanceInput} - A parsed input argument containing the address of the spender and the amount to be subtracted
  */
 export function decreaseAllowance(input: DecreaseAllowanceInput): void {
     let from = Context.get('sender');
@@ -337,8 +345,7 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
 
 /**
  * @transaction create new tokens and assign them to the specified address
- * @param to address to which the new tokens will be assigned
- * @param value the amount of tokens to be created
+ * @param {MintInput} - A parsed input argument containing the address of the recipient and the amount of tokens to be created
  */
 export function mint(input: MintInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
@@ -370,8 +377,7 @@ export function mint(input: MintInput): void {
 
 /**
  * @transaction Destroy tokens from the specified address
- * @param from - address from which the tokens will be destroyed
- * @param value - amount of tokens to be destroyed
+ * @param {BurnInput} - A parsed input argument containing the address of the sender and the amount of tokens to be destroyed
  */
 export function burn(input: BurnInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
@@ -415,8 +421,7 @@ export function burn(input: BurnInput): void {
 
 /**
  * @transaction burn tokens from the spender's allowance for transaction sender account
- * @param spender - the address of the spender
- * @param value - the amount to be burned
+ * @param {BurnFromInput} - A parsed input argument containing the address of the spender and the amount of tokens to be destroyed
  */
 export function burnFrom(input: BurnFromInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
