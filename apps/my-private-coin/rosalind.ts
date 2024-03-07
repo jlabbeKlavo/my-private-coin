@@ -9,9 +9,9 @@ import { JSON } from '@klave/sdk';
 @serializable
 export class Allowed {
     spender: string;
-    value: number;
+    value: u64;
 
-    constructor(spender: string, value: number) {
+    constructor(spender: string, value: u64) {
         this.spender = spender;
         this.value = value;
     }
@@ -24,7 +24,7 @@ export class Allowed {
 @serializable
 export class Account {    
     AccountType: string;    
-    balance: number;
+    balance: u64;
     allowed: Allowed[];
 
     constructor() {
@@ -33,11 +33,11 @@ export class Account {
         this.allowed = [];
     }
 
-    addAllowed(spender: string, value: number): void {
+    addAllowed(spender: string, value: u64): void {
         this.allowed.push(new Allowed(spender, value));
     }
 
-    findAllowed(spender: string): number {        
-        return this.allowed.findIndex(a => a.findSpender(spender));
+    findAllowed(spender: string): u32 {        
+        return 0;//this.allowed.findIndex(a => a.findSpender(spender));
     }
 }

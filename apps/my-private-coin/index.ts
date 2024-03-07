@@ -1,5 +1,5 @@
 import { Notifier, Ledger, JSON, Crypto, Context } from '@klave/sdk';
-import { ErrorMessage } from './types';
+import { ApproveInput, ErrorMessage, TransferInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput, BurnFromInput } from './types';
 import { Account } from './rosalind';
 import { Currency } from './eipx';
 
@@ -18,11 +18,10 @@ class RegisteredAccount {
 
 
 /**
- * @query return a boolean value indicating whether the address is registered 
- * 
+ * @function return a boolean value indicating whether the address is registered 
  * @param address - the address to be checked
  * */
-function recoverRegistredAccounts(address: string): RegisteredAccount {
+const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
     if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
@@ -61,9 +60,17 @@ function recoverRegistredAccounts(address: string): RegisteredAccount {
 export function openAccount(accountInfo: Account): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
 
-    let currencyDetails = new Currency();    
+    let currencyDetails = new Currency("", "", "", 0);    
     if (currencyInfo.length === 0) {                    
-        currencyDetails.id = Crypto.getKey("Default").name;
+        let key = Crypto.getKey("Default");
+        if (key === null) {
+            Notifier.sendJson<ErrorMessage>({
+                success: false,
+                message: `Key cannot be created`
+            });
+            return;
+        }
+        currencyDetails.id = key.name;
         currencyDetails.name = "Default";
         currencyDetails.symbol = "DEF";
         currencyDetails.totalSupply = 100000;
@@ -102,7 +109,7 @@ export function openAccount(accountInfo: Account): void {
 
 /** 
  * @query return total supply of the currency
- * @param {OpenAccount} input - A parsed input argument
+ * @param {Account} input - A parsed input argument
  *  */
 export function totalSupply(): string {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
@@ -121,13 +128,13 @@ export function totalSupply(): string {
 
 /** 
  * @query return balances of the currency
- * @param {OpenAccount} input - A parsed input argument
+ * @param {Account} input - A parsed input argument
  *  */
 export function balanceOf(owner: string): string {
     if (owner === "") {
         owner = Context.get('sender');
     }        
-    let fromAccount = recoverRegistredAccounts(owner);
+    let fromAccount = recoverRegisteredAccounts(owner);
     if (!fromAccount.exists)
         return "0";
 
@@ -135,51 +142,51 @@ export function balanceOf(owner: string): string {
 }
 
 /** 
- * @transaction transfer token for a specified address
- * @param to - the address to transfer to
- * @param value - the amount to be transferred
+ * @transaction 
  *  */
-export function transfer(to: string, value: number): void {
+export function transfer(input: TransferInput): void {
     let from = Context.get('sender');
-    let fromAccount = recoverRegistredAccounts(from);
-    let toAccount = recoverRegistredAccounts(to);
+    let fromAccount = recoverRegisteredAccounts(from);
+    let toAccount = recoverRegisteredAccounts(input.to);
     if (!fromAccount.exists || !toAccount.exists)
         return;
 
-    if (fromAccount.details.balance < value) {
+    if (fromAccount.details.balance < input.value) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Insufficient balance`
         });
+        return;
     }        
-    fromAccount.details.balance -= value;
-    toAccount.details.balance += value;
+    fromAccount.details.balance -= input.value;
+    toAccount.details.balance += input.value;
     Ledger.getTable(AccountsTable).set(from, JSON.stringify(fromAccount.details));
-    Ledger.getTable(AccountsTable).set(to, JSON.stringify(toAccount.details));
+    Ledger.getTable(AccountsTable).set(input.to, JSON.stringify(toAccount.details));
 
     Notifier.sendJson<ErrorMessage>({
         success: true,
         message: `Transfer successful`
     });
+
+    return;
 }
 
 /** 
- * @transaction approve the passed address to spend the specified amount of tokens on behalf of msg.sender
- * @param spender - the address which will spend the funds
- * @param value - the amount of tokens to be spent
+ * @transaction
+ * @param ApproveInput - A parsed input argument containing the spender and the value
  *  */
-export function approve(spender: string, value: number): void {
+export function approve(input: ApproveInput): void {
     let from = Context.get('sender');
-    let fromAccount = recoverRegistredAccounts(from);
+    let fromAccount = recoverRegisteredAccounts(from);
     if (!fromAccount.exists)
         return;
         
-    let index = fromAccount.details.findAllowed(spender);
+    let index = fromAccount.details.findAllowed(input.spender);
     if (index === -1) {        
         return;
     }
 
-    fromAccount.details.allowed[index].value = value;
+    fromAccount.details.allowed[index].value = input.value;
 
     Ledger.getTable(DefaultCoinTable).set(from, JSON.stringify(fromAccount.details));
     Notifier.sendJson<ErrorMessage>({
@@ -189,18 +196,18 @@ export function approve(spender: string, value: number): void {
 }
 
 /** 
- * @transaction transfer token from one address to another
+ * @transaction
  * @param from - the address to transfer from
  * @param to - the address to transfer to
  * @param value - the amount to be transferred
  *  */
-export function transferFrom(from: string, to: string, value: number): void {
-    let fromAccount = recoverRegistredAccounts(from);
-    let toAccount = recoverRegistredAccounts(to);
+export function transferFrom(input: TransferFromInput): void {
+    let fromAccount = recoverRegisteredAccounts(input.from);
+    let toAccount = recoverRegisteredAccounts(input.to);
     if (!fromAccount.exists || !toAccount.exists)
         return;
 
-    if (fromAccount.details.balance < value) {
+    if (fromAccount.details.balance < input.value) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Insufficient balance`
@@ -208,12 +215,12 @@ export function transferFrom(from: string, to: string, value: number): void {
         return;
     }        
 
-    let index = fromAccount.details.findAllowed(to);
+    let index = fromAccount.details.findAllowed(input.to);
     if (index === -1) {        
         return;
     }
 
-    if (fromAccount.details.allowed[index].value < value) {
+    if (fromAccount.details.allowed[index].value < input.value) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Insufficient allowance`
@@ -221,10 +228,10 @@ export function transferFrom(from: string, to: string, value: number): void {
         return;
     }        
 
-    fromAccount.details.balance -= value;
-    toAccount.details.balance += value;
-    Ledger.getTable(AccountsTable).set(from, JSON.stringify(fromAccount.details));
-    Ledger.getTable(AccountsTable).set(to, JSON.stringify(toAccount.details));
+    fromAccount.details.balance -= input.value;
+    toAccount.details.balance += input.value;
+    Ledger.getTable(AccountsTable).set(input.from, JSON.stringify(fromAccount.details));
+    Ledger.getTable(AccountsTable).set(input.to, JSON.stringify(toAccount.details));
 
     Notifier.sendJson<ErrorMessage>({
         success: true,
@@ -233,16 +240,16 @@ export function transferFrom(from: string, to: string, value: number): void {
 }
 
 /** 
- * @query return the amount which spender is still allowed to withdraw from owner
- * @param owner - the address giving the allowance
- * @param spender - the address receiving the allowance
+ * @query 
+ * @param owner 
+ * @param spender 
  *  */
-export function allowance(owner: string, spender: string): string {
-    let fromAccount = recoverRegistredAccounts(owner);
+export function allowance(input: AllowanceInput): string {
+    let fromAccount = recoverRegisteredAccounts(input.owner);
     if (!fromAccount.exists)
         return "0";
 
-    let index = fromAccount.details.findAllowed(spender);
+    let index = fromAccount.details.findAllowed(input.spender);
     if (index === -1) {        
         Notifier.sendJson<ErrorMessage>({
             success: false,
@@ -259,13 +266,13 @@ export function allowance(owner: string, spender: string): string {
  * @param spender - the address which will spend the funds
  * @param addedValue - the amount of tokens to be added
  */
-export function increaseAllowance(spender: string, addedValue: number): void {
+export function increaseAllowance(input: IncreaseAllowanceInput): void {
     let from = Context.get('sender');
-    let fromAccount = recoverRegistredAccounts(from);
+    let fromAccount = recoverRegisteredAccounts(from);
     if (!fromAccount.exists)
         return;
 
-    let index = fromAccount.details.findAllowed(spender);
+    let index = fromAccount.details.findAllowed(input.spender);
     if (index === -1) {        
         Notifier.sendJson<ErrorMessage>({
             success: false,
@@ -274,7 +281,7 @@ export function increaseAllowance(spender: string, addedValue: number): void {
         return;
     }
             
-    fromAccount.details.allowed[index].value += addedValue;
+    fromAccount.details.allowed[index].value += input.addedValue;
     if (fromAccount.details.allowed[index].value > fromAccount.details.balance) {
         fromAccount.details.allowed[index].value = fromAccount.details.balance;
         Notifier.sendJson<ErrorMessage>({
@@ -296,13 +303,13 @@ export function increaseAllowance(spender: string, addedValue: number): void {
  * @param spender - the address which will spend the funds
  * @param subtractedValue - the amount of tokens to be subtracted
  */
-export function decreaseAllowance(spender: string, subtractedValue: number): void {
+export function decreaseAllowance(input: DecreaseAllowanceInput): void {
     let from = Context.get('sender');
-    let fromAccount = recoverRegistredAccounts(from);
+    let fromAccount = recoverRegisteredAccounts(from);
     if (!fromAccount.exists)
         return;
 
-    let index = fromAccount.details.findAllowed(spender);
+    let index = fromAccount.details.findAllowed(input.spender);
     if (index === -1) {        
         Notifier.sendJson<ErrorMessage>({
             success: false,
@@ -311,7 +318,7 @@ export function decreaseAllowance(spender: string, subtractedValue: number): voi
         return;
     }
             
-    fromAccount.details.allowed[index].value -= subtractedValue;
+    fromAccount.details.allowed[index].value -= input.subtractedValue;
     if (fromAccount.details.allowed[index].value < 0) {
         fromAccount.details.allowed[index].value = 0;
         Notifier.sendJson<ErrorMessage>({
@@ -329,11 +336,11 @@ export function decreaseAllowance(spender: string, subtractedValue: number): voi
 }
 
 /**
- * @transaction mint tokens to the specified address
- * @param to - the address to mint to
- * @param value - the amount to be minted
+ * @transaction create new tokens and assign them to the specified address
+ * @param to address to which the new tokens will be assigned
+ * @param value the amount of tokens to be created
  */
-export function mint(to: string, value: number): void {
+export function mint(input: MintInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
     if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
@@ -344,15 +351,15 @@ export function mint(to: string, value: number): void {
     }
     else {
         let currencyDetails = JSON.parse<Currency>(currencyInfo);
-        currencyDetails.totalSupply += value;
+        currencyDetails.totalSupply += input.value;
         Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(currencyDetails));
 
-        let toAccount = recoverRegistredAccounts(to);
+        let toAccount = recoverRegisteredAccounts(input.to);
         if (!toAccount.exists)
             return;
 
-        toAccount.details.balance += value;
-        Ledger.getTable(AccountsTable).set(to, JSON.stringify(toAccount.details));
+        toAccount.details.balance += input.value;
+        Ledger.getTable(AccountsTable).set(input.to, JSON.stringify(toAccount.details));
 
         Notifier.sendJson<ErrorMessage>({
             success: true,
@@ -362,11 +369,11 @@ export function mint(to: string, value: number): void {
 }
 
 /**
- * @transaction burn tokens from the specified address
- * @param from - the address to burn from
- * @param value - the amount to be burned
+ * @transaction Destroy tokens from the specified address
+ * @param from - address from which the tokens will be destroyed
+ * @param value - amount of tokens to be destroyed
  */
-export function burn(from: string, value: number): void {
+export function burn(input: BurnInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
     if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
@@ -377,28 +384,28 @@ export function burn(from: string, value: number): void {
     }
     else {
         let currencyDetails = JSON.parse<Currency>(currencyInfo);
-        currencyDetails.totalSupply -= value;
+        currencyDetails.totalSupply -= input.value;
         if (currencyDetails.totalSupply < 0) {
             currencyDetails.totalSupply = 0;
         }
         Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(currencyDetails));
     
-        let fromAccount = recoverRegistredAccounts(from);
+        let fromAccount = recoverRegisteredAccounts(input.from);
         if (!fromAccount.exists)
             return;
 
-        if (fromAccount.details.balance < value) {
+        if (fromAccount.details.balance < input.value) {
             Notifier.sendJson<ErrorMessage>({
                 success: false,
                 message: `Insufficient balance`
             });
             return;
         }        
-        fromAccount.details.balance -= value;
+        fromAccount.details.balance -= input.value;
         if (fromAccount.details.balance < 0) {
             fromAccount.details.balance = 0;
         }
-        Ledger.getTable(AccountsTable).set(from, JSON.stringify(fromAccount.details));
+        Ledger.getTable(AccountsTable).set(input.from, JSON.stringify(fromAccount.details));
         Notifier.sendJson<ErrorMessage>({
             success: true,
             message: `Burn successful`
@@ -411,7 +418,7 @@ export function burn(from: string, value: number): void {
  * @param spender - the address of the spender
  * @param value - the amount to be burned
  */
-export function burnFrom(spender: string, value: number): void {
+export function burnFrom(input: BurnFromInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
     if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
@@ -420,11 +427,11 @@ export function burnFrom(spender: string, value: number): void {
         });
     }
     else {    
-        let fromAccount = recoverRegistredAccounts(Context.get('sender'));
+        let fromAccount = recoverRegisteredAccounts(Context.get('sender'));
         if (!fromAccount.exists)
             return;
 
-        let index = fromAccount.details.findAllowed(spender);
+        let index = fromAccount.details.findAllowed(input.spender);
         if (index === -1) {        
             Notifier.sendJson<ErrorMessage>({
                 success: false,
@@ -433,14 +440,14 @@ export function burnFrom(spender: string, value: number): void {
             return;
         }
                     
-        if (fromAccount.details.allowed[index].value < value) {            
+        if (fromAccount.details.allowed[index].value < input.value) {            
             Notifier.sendJson<ErrorMessage>({
                 success: false,
                 message: `Insufficient spender allowance`
             });        
             return;    
         }
-        if (fromAccount.details.balance < value) {            
+        if (fromAccount.details.balance < input.value) {            
             Notifier.sendJson<ErrorMessage>({
                 success: false,
                 message: `Insufficient balance`
@@ -448,17 +455,17 @@ export function burnFrom(spender: string, value: number): void {
             return;    
         }
         let currencyDetails = JSON.parse<Currency>(currencyInfo);         
-        if (currencyDetails.totalSupply < value) {
+        if (currencyDetails.totalSupply < input.value) {
             Notifier.sendJson<ErrorMessage>({
                 success: false,
                 message: `Insufficient total supply`
             });                    
         }
-        currencyDetails.totalSupply -= value;
+        currencyDetails.totalSupply -= input.value;
         Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(currencyDetails));
 
-        fromAccount.details.allowed[index].value -= value;
-        fromAccount.details.balance -= value;        
+        fromAccount.details.allowed[index].value -= input.value;
+        fromAccount.details.balance -= input.value;        
         Ledger.getTable(AccountsTable).set(Context.get('sender'), JSON.stringify(fromAccount.details));
 
 
