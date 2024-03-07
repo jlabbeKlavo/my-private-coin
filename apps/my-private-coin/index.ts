@@ -77,12 +77,18 @@ export function createCoin(input: Currency): void {
         });
         return;
     }
+    Notifier.sendString(key.name);
     input.id = key.name;
+
+    Notifier.sendString(key.getPublicKey().getPem());
     input.publicKey = key.getPublicKey().getPem();
+
+    Notifier.sendString(Context.get('sender'));
     input.accounts.push(Context.get('sender'));
 
-    Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(input));
+    Notifier.sendString(input.accounts.length.toString());
 
+    Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify(input));
     Notifier.sendJson<ErrorMessage>({
         success: true,
         message: `Currency ${input.name} created successfully`
