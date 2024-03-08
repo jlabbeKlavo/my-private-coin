@@ -15,10 +15,6 @@ export class Allowed {
         this.spender = spender;
         this.value = value;
     }
-
-    findSpender(spender: string): boolean {
-        return this.spender === spender;
-    }
 }
 
 @serializable
@@ -37,7 +33,13 @@ export class Account {
         this.allowed.push(new Allowed(spender, value));
     }
 
-    findAllowed(spender: string): u32 {        
-        return 0;//this.allowed.findIndex(a => a.findSpender(spender));
+    findAllowed(spender: string): u32 {
+        for (let i = 0; i < this.allowed.length; i++) 
+        {
+            if (this.allowed[i].spender == spender) {
+                return i;
+            }
+        } 
+        return -1;
     }
 }

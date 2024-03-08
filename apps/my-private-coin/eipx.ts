@@ -19,5 +19,15 @@ export class Currency {
         this.decimals = 0;
         this.accounts = [];
     }
+
+    findAccount(account: string): u32 {
+        for (let i = 0; i < this.accounts.length; i++) 
+        {
+            if (this.accounts[i] == account) {
+                return i;
+            }
+        } 
+        return -1;
+    }
 }
 
