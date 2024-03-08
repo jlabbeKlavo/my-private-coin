@@ -30,9 +30,11 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
         });
         return new RegisteredAccount(false, new Account());
     }
-    Notifier.sendString(`currencyInfo = (${currencyInfo})`);
 
     let currencyDetails = JSON.parse<Currency>(currencyInfo);
+    Notifier.sendString(`currencyDetails = (${currencyDetails})`);
+    Notifier.sendString(`address = (${address})`);
+
     if (currencyDetails.accounts.indexOf(address) == -1) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
@@ -172,10 +174,6 @@ export function balanceOf(owner: string): void {
     }        
     let fromAccount = recoverRegisteredAccounts(owner);
     if (!fromAccount.exists) {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency not found`
-        });
         return;
     }
 
@@ -296,10 +294,6 @@ export function transferFrom(input: TransferFromInput): void {
 export function allowance(input: AllowanceInput): void {
     let fromAccount = recoverRegisteredAccounts(input.owner);
     if (!fromAccount.exists) {
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Owner account ` + input.owner + ` not found`
-        });        
         return;
     }
 
@@ -326,10 +320,6 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
     let from = Context.get('sender');
     let fromAccount = recoverRegisteredAccounts(from);
     if (!fromAccount.exists) {
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Current holder account ` + from + ` not found`
-        });        
         return;
     }
 
@@ -367,10 +357,6 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
     let from = Context.get('sender');
     let fromAccount = recoverRegisteredAccounts(from);
     if (!fromAccount.exists) {
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Current holder account ` + from + ` not found`
-        });        
         return;
     }        
 
