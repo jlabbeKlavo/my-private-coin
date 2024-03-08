@@ -23,7 +23,7 @@ class RegisteredAccount {
  * */
 const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length == 0) {     
+    if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Currency not found`
@@ -37,7 +37,7 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
 
     let index = currencyDetails.findAccount(address);
     Notifier.sendString(`index = (${index})`);
-    if (index == -1) {
+    if (index === -1) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Address ${address} not found in the list of registered accounts`
@@ -46,7 +46,7 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
     }
 
     let account = Ledger.getTable(AccountsTable).get(address);
-    if (account.length == 0) {
+    if (account.length === 0) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Address not found in the accounts table`
@@ -92,23 +92,26 @@ export function createCoin(input: Currency): void {
  *  */
 export function openAccount(accountInfo: Account): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
-    if (currencyInfo.length == 0) {                    
+    if (currencyInfo.length === 0) {                    
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Currency not found`
         });
         return;
     }
-
     let ctx_sender = Context.get('sender');
     Notifier.sendString(`ctx_sender = (${ctx_sender})`);
     let account = Ledger.getTable(AccountsTable).get(ctx_sender);
-    if (account.length == 0) {
+    if (account.length === 0) {
         let accountDetails = new Account();
         accountDetails.AccountType = accountInfo.AccountType;
         accountDetails.balance = accountInfo.balance;
-
         Ledger.getTable(AccountsTable).set(ctx_sender, JSON.stringify<Account>(accountDetails));
+
+        let currencyDetails = JSON.parse<Currency>(currencyInfo);
+        currencyDetails.accounts.push(ctx_sender);
+        Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
+
         Notifier.sendJson<ErrorMessage>({
             success: true,
             message: `Account created successfully`
@@ -128,7 +131,7 @@ export function openAccount(accountInfo: Account): void {
 export function listAccounts(): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
 
-    if (currencyInfo.length == 0) {                    
+    if (currencyInfo.length === 0) {                    
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Currency not found`
@@ -149,7 +152,7 @@ export function listAccounts(): void {
  *  */
 export function totalSupply(): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length == 0) {     
+    if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Currency not found`
@@ -169,7 +172,7 @@ export function totalSupply(): void {
  * @param {string} owner - the address of the owner, takes the sender's address if not provided
  *  */
 export function balanceOf(owner: string): void {
-    if (owner == "") {
+    if (owner === "") {
         owner = Context.get('sender');
     }
     let fromAccount = recoverRegisteredAccounts(owner);
@@ -228,7 +231,7 @@ export function approve(input: ApproveInput): void {
         return;
         
     let index = fromAccount.details.findAllowed(input.spender);
-    if (index == -1) {        
+    if (index === -1) {        
         return;
     }
 
@@ -260,7 +263,7 @@ export function transferFrom(input: TransferFromInput): void {
     }        
 
     let index = fromAccount.details.findAllowed(input.to);
-    if (index == -1) {   
+    if (index === -1) {   
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `No credit line found for owner ` + input.from + ` and spender ` + input.to
@@ -298,7 +301,7 @@ export function allowance(input: AllowanceInput): void {
     }
 
     let index = fromAccount.details.findAllowed(input.spender);
-    if (index == -1) {        
+    if (index === -1) {        
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `No credit line found for owner ` + input.owner + ` and spender ` + input.spender
@@ -324,7 +327,7 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
     }
 
     let index = fromAccount.details.findAllowed(input.spender);
-    if (index == -1) {        
+    if (index === -1) {        
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `No credit line found for owner ` + from + ` and spender ` + input.spender
@@ -361,7 +364,7 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
     }        
 
     let index = fromAccount.details.findAllowed(input.spender);
-    if (index == -1) {        
+    if (index === -1) {        
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `No allowance found`
@@ -392,7 +395,7 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
  */
 export function mint(input: MintInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length == 0) {     
+    if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Currency not found`
@@ -429,7 +432,7 @@ export function mint(input: MintInput): void {
  */
 export function burn(input: BurnInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length == 0) {     
+    if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Currency not found`
@@ -473,7 +476,7 @@ export function burn(input: BurnInput): void {
  */
 export function burnFrom(input: BurnFromInput): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length == 0) {     
+    if (currencyInfo.length === 0) {     
         Notifier.sendJson<ErrorMessage>({
             success: false,
             message: `Currency not found`
@@ -485,7 +488,7 @@ export function burnFrom(input: BurnFromInput): void {
             return;
 
         let index = fromAccount.details.findAllowed(input.spender);
-        if (index == -1) {        
+        if (index === -1) {        
             Notifier.sendJson<ErrorMessage>({
                 success: false,
                 message: `No spender allowance found`
