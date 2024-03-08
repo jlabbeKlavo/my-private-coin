@@ -4,9 +4,10 @@ import { JSON } from "@klave/sdk";
 export class Currency {
     id: string;
     publicKey: string;
-    name!: string;    
-    symbol!: string;
-    totalSupply!: u64;
+    name: string;    
+    symbol: string;
+    totalSupply: u64;
+    decimals: u8;
     accounts: string[];
 
     constructor(name: string, symbol: string, totalSupply: u64) {
@@ -15,6 +16,7 @@ export class Currency {
         this.name = name;
         this.symbol = symbol;
         this.totalSupply = totalSupply;
+        this.decimals = 0;
         this.accounts = [];
     }
 }
