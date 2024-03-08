@@ -32,7 +32,7 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
     }
 
     let currencyDetails = JSON.parse<Currency>(currencyInfo);
-    Notifier.sendString(`currencyDetails = (${currencyDetails})`);
+    Notifier.sendString(`currencyDetails = (${currencyDetails.accounts})`);
     Notifier.sendString(`address = (${address})`);
 
     if (currencyDetails.accounts.indexOf(address) == -1) {
