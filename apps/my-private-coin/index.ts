@@ -54,7 +54,7 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
         return new RegisteredAccount(false, new Account());
     }
 
-    let accountDetails = JSON.parse<Account>(account);
+    let accountDetails = JSON.parse<Account>(account);    
     return new RegisteredAccount(true, accountDetails);
 }
 
@@ -92,7 +92,6 @@ export function createCoin(input: Currency): void {
  *  */
 export function openAccount(accountInfo: Account): void {
     let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
-
     if (currencyInfo.length == 0) {                    
         Notifier.sendJson<ErrorMessage>({
             success: false,
@@ -101,14 +100,12 @@ export function openAccount(accountInfo: Account): void {
         return;
     }
 
-    let currencyDetails = JSON.parse<Currency>(currencyInfo);
-
     let ctx_sender = Context.get('sender');
     let account = Ledger.getTable(AccountsTable).get(ctx_sender);
     if (account.length == 0) {
         let accountDetails = new Account();
         accountDetails.AccountType = accountInfo.AccountType;
-        accountDetails.balance = currencyDetails.totalSupply;
+        accountDetails.balance = accountInfo.balance;
 
         Ledger.getTable(AccountsTable).set(ctx_sender, JSON.stringify<Account>(accountDetails));
         Notifier.sendJson<ErrorMessage>({
@@ -173,7 +170,7 @@ export function totalSupply(): void {
 export function balanceOf(owner: string): void {
     if (owner == "") {
         owner = Context.get('sender');
-    }        
+    }
     let fromAccount = recoverRegisteredAccounts(owner);
     if (!fromAccount.exists) {
         return;
