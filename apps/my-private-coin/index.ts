@@ -1,6 +1,6 @@
 import { Notifier, Ledger, JSON, Crypto, Context } from '@klave/sdk';
 import { ApproveInput, ErrorMessage, TransferInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput, BurnFromInput } from './types';
-import { Account } from './rosalind';
+import { Account, Allowed } from './rosalind';
 import { Currency } from './eipx';
 
 const DefaultCoinTable = "DefaultCoinTable";
@@ -32,11 +32,7 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
     }
 
     let currencyDetails = JSON.parse<Currency>(currencyInfo);
-    Notifier.sendString(`currencyDetails = (${currencyDetails.accounts})`);
-    Notifier.sendString(`address = (${address})`);
-
-    let index = currencyDetails.findAccount(address);
-    Notifier.sendString(`index = (${index})`);
+    let index = currencyDetails.findAccount(address);    
     if (index === -1) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
@@ -103,7 +99,7 @@ export function openAccount(accountInfo: Account): void {
     let account = Ledger.getTable(AccountsTable).get(ctx_sender);
     if (account.length === 0) {
         let accountDetails = new Account();
-        accountDetails.AccountType = accountInfo.AccountType;
+        accountDetails.accountType = accountInfo.accountType;
         accountDetails.balance = accountInfo.balance;
         Ledger.getTable(AccountsTable).set(ctx_sender, JSON.stringify<Account>(accountDetails));
 
@@ -231,10 +227,11 @@ export function approve(input: ApproveInput): void {
         
     let index = fromAccount.details.findAllowed(input.spender);
     if (index === -1) {        
-        return;
+        fromAccount.details.allowed.push(new Allowed(input.spender, input.value));
     }
-
-    fromAccount.details.allowed[index].value = input.value;
+    else {
+        fromAccount.details.allowed[index].value += input.value;
+    }
 
     Ledger.getTable(DefaultCoinTable).set(from, JSON.stringify<Account>(fromAccount.details));
     Notifier.sendJson<ErrorMessage>({
@@ -294,6 +291,9 @@ export function transferFrom(input: TransferFromInput): void {
  * @param {AllowanceInput} - A parsed input argument containing the address of the owner and the address of the spender
  *  */
 export function allowance(input: AllowanceInput): void {
+    if (input.owner === "") {
+        input.owner = Context.get('sender');
+    }
     let fromAccount = recoverRegisteredAccounts(input.owner);
     if (!fromAccount.exists) {
         return;

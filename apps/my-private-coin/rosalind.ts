@@ -19,14 +19,14 @@ export class Allowed {
 
 @serializable
 export class Account {    
-    AccountType: string;    
+    accountType: string;    
     balance: u64;
-    allowed: Allowed[];
+    allowed: Array<Allowed>;
 
     constructor() {
-        this.AccountType = "Personal";
+        this.accountType = "Personal";
         this.balance = 0;
-        this.allowed = [];
+        this.allowed = new Array<Allowed>();
     }
 
     addAllowed(spender: string, value: u64): void {

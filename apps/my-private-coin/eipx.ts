@@ -8,7 +8,7 @@ export class Currency {
     symbol: string;
     totalSupply: u64;
     decimals: u8;
-    accounts: string[];
+    accounts: Array<string>;
 
     constructor(name: string, symbol: string, totalSupply: u64) {
         this.id = "";
@@ -17,7 +17,7 @@ export class Currency {
         this.symbol = symbol;
         this.totalSupply = totalSupply;
         this.decimals = 0;
-        this.accounts = [];
+        this.accounts = new Array<string>();
     }
 
     findAccount(account: string): u32 {
