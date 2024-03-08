@@ -251,8 +251,8 @@ export function approve(input: ApproveInput): void {
     else {
         fromAccount.details.allowed[index].value += input.value;
     }
-
-    Ledger.getTable(DefaultCoinTable).set(from, JSON.stringify<Account>(fromAccount.details));
+    
+    Ledger.getTable(AccountsTable).set(from, JSON.stringify<Account>(fromAccount.details));
     Notifier.sendJson<ErrorMessage>({
         success: true,
         message: `Approve successful`
@@ -334,7 +334,7 @@ export function allowance(input: AllowanceInput): void {
 }
 
 /**
- * @query increase the amount which spender is still allowed to withdraw from owner
+ * @transaction increase the amount which spender is still allowed to withdraw from owner
  * @param {IncreaseAllowanceInput} - A parsed input argument containing the address of the spender and the amount to be added
  */
 export function increaseAllowance(input: IncreaseAllowanceInput): void {
@@ -353,25 +353,23 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
         return;
     }
             
-    fromAccount.details.allowed[index].value += input.addedValue;
-    if (fromAccount.details.allowed[index].value > fromAccount.details.balance) {
-        fromAccount.details.allowed[index].value = fromAccount.details.balance;
+    if (fromAccount.details.allowed[index].value > fromAccount.details.balance) {        
         Notifier.sendJson<ErrorMessage>({
             success: true,
-            message: `Allowance increased up to the maximum balance of the account`
+            message: `Insufficient balance`
         });    
     }    
-    else {
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Allowance increased successfully`
-        });    
-    }
-    Ledger.getTable(DefaultCoinTable).set(from, JSON.stringify<Account>(fromAccount.details));
+
+    fromAccount.details.allowed[index].value += input.addedValue;
+    Ledger.getTable(AccountsTable).set(from, JSON.stringify<Account>(fromAccount.details));
+    Notifier.sendJson<ErrorMessage>({
+        success: true,
+        message: `Allowance increased successfully`
+    });    
 }
 
 /**
- * @query decrease the amount which spender is still allowed to withdraw from owner
+ * @transaction decrease the amount which spender is still allowed to withdraw from owner
  * @param {DecreaseAllowanceInput} - A parsed input argument containing the address of the spender and the amount to be subtracted
  */
 export function decreaseAllowance(input: DecreaseAllowanceInput): void {
@@ -389,22 +387,20 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
         });
         return;
     }
-            
+                
+    if (fromAccount.details.allowed[index].value < input.subtractedValue) {        
+        Notifier.sendJson<ErrorMessage>({
+            success: true,
+            message: `Insufficient allowance`
+        });    
+    }
+
     fromAccount.details.allowed[index].value -= input.subtractedValue;
-    if (fromAccount.details.allowed[index].value < 0) {
-        fromAccount.details.allowed[index].value = 0;
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Allowance decreased to the minimum value of 0`
-        });    
-    }
-    else {
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Allowance decreased successfully`
-        });    
-    }
-    Ledger.getTable(DefaultCoinTable).set(from, JSON.stringify<Account>(fromAccount.details));
+    Ledger.getTable(AccountsTable).set(from, JSON.stringify<Account>(fromAccount.details));
+    Notifier.sendJson<ErrorMessage>({
+        success: true,
+        message: `Allowance decreased successfully`
+    });    
 }
 
 /**
@@ -421,10 +417,6 @@ export function mint(input: MintInput): void {
         return;
     }
 
-    let currencyDetails = JSON.parse<Currency>(currencyInfo);
-    currencyDetails.totalSupply += input.value;
-    Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
-
     let toAccount = recoverRegisteredAccounts(input.to);
     if (!toAccount.exists)
     {
@@ -434,6 +426,10 @@ export function mint(input: MintInput): void {
         });
         return;
     }
+
+    let currencyDetails = JSON.parse<Currency>(currencyInfo);
+    currencyDetails.totalSupply += input.value;
+    Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
 
     toAccount.details.balance += input.value;
     Ledger.getTable(AccountsTable).set(input.to, JSON.stringify<Account>(toAccount.details));
@@ -459,11 +455,13 @@ export function burn(input: BurnInput): void {
     }
     else {
         let currencyDetails = JSON.parse<Currency>(currencyInfo);
-        currencyDetails.totalSupply -= input.value;
-        if (currencyDetails.totalSupply < 0) {
-            currencyDetails.totalSupply = 0;
-        }
-        Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
+        if (currencyDetails.totalSupply < input.value) {
+            Notifier.sendJson<ErrorMessage>({
+                success: false,
+                message: `Insufficient total supply`
+            });
+            return;
+        }        
     
         let fromAccount = recoverRegisteredAccounts(input.from);
         if (!fromAccount.exists)
@@ -476,11 +474,13 @@ export function burn(input: BurnInput): void {
             });
             return;
         }        
+
+        currencyDetails.totalSupply -= input.value;
+        Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
+
         fromAccount.details.balance -= input.value;
-        if (fromAccount.details.balance < 0) {
-            fromAccount.details.balance = 0;
-        }
         Ledger.getTable(AccountsTable).set(input.from, JSON.stringify<Account>(fromAccount.details));
+
         Notifier.sendJson<ErrorMessage>({
             success: true,
             message: `Burn successful`
