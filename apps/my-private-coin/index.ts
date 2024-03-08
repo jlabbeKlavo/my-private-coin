@@ -77,7 +77,6 @@ export function createCoin(input: Currency): void {
     let key = Crypto.ECDSA.generateKey(input.name);
     currencyDetails.id = key.name;
     currencyDetails.publicKey = key.getPublicKey().getPem();    
-    currencyDetails.accounts.push(Context.get('sender'));
 
     Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
     Notifier.sendJson<ErrorMessage>({
