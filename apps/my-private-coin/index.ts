@@ -119,6 +119,29 @@ export function openAccount(accountInfo: Account): void {
 }
 
 /** 
+ * @query
+ * @param {Account} input - A parsed input argument
+ *  */
+export function listAccounts(): void {
+    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
+
+    if (currencyInfo.length == 0) {                    
+        Notifier.sendJson<ErrorMessage>({
+            success: false,
+            message: `Currency not found`
+        });
+        return;
+    }
+
+    let currencyDetails = JSON.parse<Currency>(currencyInfo);
+    Notifier.sendJson<ErrorMessage>({
+        success: true,
+        message: `Accounts registered are the following: ${currencyDetails.accounts}`
+    });
+}
+
+
+/** 
  * @query return total supply of the currency
  *  */
 export function totalSupply(): void {
@@ -181,7 +204,7 @@ export function transfer(input: TransferInput): void {
         });
         return;
     }
-    
+
     fromAccount.details.balance -= input.value;
     toAccount.details.balance += input.value;
     Ledger.getTable(AccountsTable).set(from, JSON.stringify<Account>(fromAccount.details));
