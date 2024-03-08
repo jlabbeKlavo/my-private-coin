@@ -141,6 +141,25 @@ export function listAccounts(): void {
     });
 }
 
+/** 
+ * @query
+ * @param {Account} input - A parsed input argument
+ *  */
+export function getAccount(): void {
+    let account = Ledger.getTable(AccountsTable).get(Context.get('sender'));   
+    if (account.length === 0) {                    
+        Notifier.sendJson<ErrorMessage>({
+            success: false,
+            message: `Account not found`
+        });
+        return;
+    }
+    
+    Notifier.sendJson<ErrorMessage>({
+        success: true,
+        message: `Account shows : ${account}`
+    });
+}
 
 /** 
  * @query return total supply of the currency
