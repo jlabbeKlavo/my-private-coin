@@ -101,6 +101,7 @@ export function openAccount(accountInfo: Account): void {
     }
 
     let ctx_sender = Context.get('sender');
+    Notifier.sendString(`ctx_sender = (${ctx_sender})`);
     let account = Ledger.getTable(AccountsTable).get(ctx_sender);
     if (account.length == 0) {
         let accountDetails = new Account();
