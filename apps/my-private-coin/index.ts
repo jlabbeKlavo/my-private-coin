@@ -30,12 +30,13 @@ const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
         });
         return new RegisteredAccount(false, new Account());
     }
-    
+    Notifier.sendString(`currencyInfo = (${currencyInfo})`);
+
     let currencyDetails = JSON.parse<Currency>(currencyInfo);
     if (currencyDetails.accounts.indexOf(address) == -1) {
         Notifier.sendJson<ErrorMessage>({
             success: false,
-            message: `Address {$address} not found in the list of registered accounts`
+            message: `Address ${address} not found in the list of registered accounts`
         });
         return new RegisteredAccount(false, new Account());
     }
