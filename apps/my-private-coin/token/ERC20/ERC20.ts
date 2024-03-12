@@ -44,9 +44,13 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * All two of these values are immutable: they can only be set once during
      * construction.
      */
-    super(name_: string, symbol_: string) {
+    constructor(name_: string, symbol_: string, totalSupply_: u64) {
+        super();
         this._name = name_;
         this._symbol = symbol_;
+        this._totalSupply = totalSupply_;
+        this._balances = new Array<string>();
+        this._allowances = new Array<Array<string>>();
     }
 
     /**
