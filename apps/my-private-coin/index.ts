@@ -72,6 +72,9 @@ export function totalSupply(): void {
  *  */
 export function balanceOf(owner: string): void {
     let erc20 = _loadERC20();
+    if (owner.length == 0) {
+        owner = Context.get('sender');        
+    }
     if (!erc20.accountHolder(owner))
         return;
     emit(`Balance for ${owner} is ${erc20.balanceOf(owner)}`);    
@@ -95,7 +98,7 @@ export function transfer(input: TransferInput): void {
  *  */
 export function approve(input: ApproveInput): void {
     let erc20 = _loadERC20();
-    if (!erc20.accountHolder(Context.get('sender')))
+    if (!erc20.accountHolder(Context.get('sender')) || !erc20.accountHolder(input.spender))
         return;
     erc20.approve(input.spender, input.value);
     _saveERC20(erc20);
@@ -107,6 +110,9 @@ export function approve(input: ApproveInput): void {
  *  */
 export function transferFrom(input: TransferFromInput): void {
     let erc20 = _loadERC20();
+    if (input.from.length == 0) {
+        input.from = Context.get('sender');
+    }
     if (!erc20.accountHolder(input.from) || !erc20.accountHolder(input.to))
         return;
     erc20.transferFrom(input.from, input.to, input.value);
@@ -119,6 +125,9 @@ export function transferFrom(input: TransferFromInput): void {
  *  */
 export function allowance(input: AllowanceInput): void {
     let erc20 = _loadERC20();
+    if (input.owner.length == 0) {
+        input.owner = Context.get('sender');
+    }
     if (!erc20.accountHolder(input.owner) || !erc20.accountHolder(input.spender))
         return;
     erc20.allowance(input.owner, input.spender);    
@@ -142,7 +151,7 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
  */
 export function decreaseAllowance(input: DecreaseAllowanceInput): void {
     let erc20 = _loadERC20();
-    if (!erc20.accountHolder(Context.get('sender')))
+    if (!erc20.accountHolder(Context.get('sender')) || !erc20.accountHolder(input.spender))
         return;
     erc20.decreaseAllowance(input.spender, input.subtractedValue);
     _saveERC20(erc20);
@@ -153,11 +162,10 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
  * @param {MintInput} - A parsed input argument containing the address of the recipient and the amount of tokens to be created
  */
 export function mint(input: MintInput): void {
-    let erc20 = _loadERC20();    
+    let erc20 = _loadERC20();
     if (input.to.length == 0) {
         input.to = Context.get('sender');        
     }
-    emit(`input.to is ${input.to}`)
     if (!erc20.accountHolder(input.to)) {
         erc20.createAccount(input.to);
     }        
