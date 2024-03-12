@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/ERC20.sol)
 
+import {JSON} from "@klave/sdk"
 import {address, revert, emit} from "../../klave/types"
 import {Context} from "@klave/sdk"
 import {IERC20, IERC20Events} from "./IERC20"
@@ -31,8 +32,8 @@ import {IERC20Metadata} from "./extensions/IERC20Metadata";
  */
 @serializable
 export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
-    _balances: Array<string>;
-    _allowances: Array<Array<string>>;
+    _balances: Map<address, u64>;
+    _allowances: Map<address, Map<address, u64>>;
 
     _totalSupply: u64;
     _name: string;
@@ -49,8 +50,8 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
         this._name = name_;
         this._symbol = symbol_;
         this._totalSupply = totalSupply_;
-        this._balances = new Array<string>();
-        this._allowances = new Array<Array<string>>();
+        this._balances = new Map<address, u64>();
+        this._allowances = new Map<address, Map<address, u64>>();
     }
 
     /**
@@ -232,7 +233,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
-    _mint(account: address, value: u64) : void {
+    mint(account: address, value: u64) : void {
         if (account.length === 0) {
             revert(this.ERC20InvalidReceiver(account));
         }
@@ -247,7 +248,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      *
      * NOTE: This function is not virtual, {_update} should be overridden instead
      */
-    _burn(account: address, value: u64) : void {
+    burn(account: address, value: u64) : void {
         if (account.length === 0) {
             revert(this.ERC20InvalidSender(account));
         }
