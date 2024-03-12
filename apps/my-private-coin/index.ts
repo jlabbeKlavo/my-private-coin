@@ -1,4 +1,4 @@
-import { JSON, Ledger } from "@klave/sdk"
+import { JSON, Ledger, Context } from "@klave/sdk"
 import { ERC20 } from "./token/ERC20/ERC20"
 import { emit } from "./klave/types"
 import { CreateInput, TransferInput, ApproveInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput } from "./klave/ERC20/ERC20Inputs";
@@ -22,7 +22,7 @@ const _saveERC20 = function(erc20 : ERC20): void {
  * @transaction 
  * @param {CreateInput} - A parsed input argument containing the name, symbol, decimals and total supply of the currency
  *  */
-export function create(input: CreateInput): void {    
+export function createCoin(input: CreateInput): void {    
     let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
     if (erc20_table.length !== 0) {
         emit("Coin already exists");
@@ -72,6 +72,8 @@ export function totalSupply(): void {
  *  */
 export function balanceOf(owner: string): void {
     let erc20 = _loadERC20();
+    if (!erc20.accountHolder(owner))
+        return;
     emit(`Balance for ${owner} is ${erc20.balanceOf(owner)}`);    
 }
 
@@ -81,6 +83,8 @@ export function balanceOf(owner: string): void {
  *  */
 export function transfer(input: TransferInput): void {
     let erc20 = _loadERC20();
+    if (!erc20.accountHolder(Context.get('sender')) || !erc20.accountHolder(input.to))
+        return;
     erc20.transfer(input.to, input.value);
     _saveERC20(erc20);
 }
@@ -91,6 +95,8 @@ export function transfer(input: TransferInput): void {
  *  */
 export function approve(input: ApproveInput): void {
     let erc20 = _loadERC20();
+    if (!erc20.accountHolder(Context.get('sender')))
+        return;
     erc20.approve(input.spender, input.value);
     _saveERC20(erc20);
 }
@@ -101,6 +107,8 @@ export function approve(input: ApproveInput): void {
  *  */
 export function transferFrom(input: TransferFromInput): void {
     let erc20 = _loadERC20();
+    if (!erc20.accountHolder(input.from) || !erc20.accountHolder(input.to))
+        return;
     erc20.transferFrom(input.from, input.to, input.value);
     _saveERC20(erc20);
 }
@@ -111,6 +119,8 @@ export function transferFrom(input: TransferFromInput): void {
  *  */
 export function allowance(input: AllowanceInput): void {
     let erc20 = _loadERC20();
+    if (!erc20.accountHolder(input.owner) || !erc20.accountHolder(input.spender))
+        return;
     erc20.allowance(input.owner, input.spender);    
 }
 
@@ -120,6 +130,8 @@ export function allowance(input: AllowanceInput): void {
  */
 export function increaseAllowance(input: IncreaseAllowanceInput): void {
     let erc20 = _loadERC20();
+    if (!erc20.accountHolder(Context.get('sender')) || !erc20.accountHolder(input.spender))
+        return;
     erc20.increaseAllowance(input.spender, input.addedValue);
     _saveERC20(erc20);
 }
@@ -130,6 +142,8 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
  */
 export function decreaseAllowance(input: DecreaseAllowanceInput): void {
     let erc20 = _loadERC20();
+    if (!erc20.accountHolder(Context.get('sender')))
+        return;
     erc20.decreaseAllowance(input.spender, input.subtractedValue);
     _saveERC20(erc20);
 }
@@ -139,7 +153,10 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
  * @param {MintInput} - A parsed input argument containing the address of the recipient and the amount of tokens to be created
  */
 export function mint(input: MintInput): void {
-    let erc20 = _loadERC20();
+    let erc20 = _loadERC20();    
+    if (!erc20.accountHolder(Context.get('sender'))) {
+        erc20.createAccount(Context.get('sender'));
+    }        
     erc20.mint(input.to, input.value);
     _saveERC20(erc20);
 }
@@ -150,6 +167,9 @@ export function mint(input: MintInput): void {
  */
 export function burn(input: BurnInput): void {
     let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));    
+    if (!erc20.accountHolder(Context.get('sender'))) {
+        erc20.createAccount(Context.get('sender'));
+    }        
     erc20.burn(input.from, input.value);
     _saveERC20(erc20);
 }
