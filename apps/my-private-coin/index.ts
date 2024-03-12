@@ -12,7 +12,7 @@ const ERC20Table = "ERC20Table";
  *  */
 export function create(input: CreateInput): void {    
     let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
-    if (erc20_table.length === 0) {
+    if (erc20_table.length !== 0) {
         emit("Coin already exists");
         return;
     }
