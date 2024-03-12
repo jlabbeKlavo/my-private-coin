@@ -17,7 +17,9 @@ export function create(input: CreateInput): void {
         return;
     }
     let erc20 = new ERC20(input.name, input.symbol, input.decimals, input.totalSupply);
-    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    let erc20_json = JSON.stringify<ERC20>(erc20);
+    emit(erc20_json);
+    //Ledger.getTable(ERC20Table).set("ALL", erc20_json);
     emit("Coin created successfully");
 }
 
