@@ -1,7 +1,7 @@
 import { JSON, Ledger, Context } from "@klave/sdk"
 import { ERC20 } from "./token/ERC20/ERC20"
 import { emit } from "./klave/types"
-import { CreateInput, TransferInput, ApproveInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput } from "./klave/ERC20/ERC20Inputs";
+import { CreateInput, TransferInput, ApproveInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput } from "./klave/ERC20/ERC20RouteArgs";
 
 const ERC20Table = "ERC20Table";
 
@@ -154,8 +154,11 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
  */
 export function mint(input: MintInput): void {
     let erc20 = _loadERC20();    
-    if (!erc20.accountHolder(Context.get('sender'))) {
-        erc20.createAccount(Context.get('sender'));
+    if (input.to.length === 0) {
+        input.to = Context.get('sender');
+    }
+    if (!erc20.accountHolder(input.to)) {
+        erc20.createAccount(input.to);
     }        
     erc20.mint(input.to, input.value);
     _saveERC20(erc20);
@@ -167,8 +170,11 @@ export function mint(input: MintInput): void {
  */
 export function burn(input: BurnInput): void {
     let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));    
-    if (!erc20.accountHolder(Context.get('sender'))) {
-        erc20.createAccount(Context.get('sender'));
+    if (input.from.length === 0) {
+        input.from = Context.get('sender');
+    }
+    if (!erc20.accountHolder(input.from)) {
+        erc20.createAccount(input.from);
     }        
     erc20.burn(input.from, input.value);
     _saveERC20(erc20);
