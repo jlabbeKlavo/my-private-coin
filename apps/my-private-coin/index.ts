@@ -7,7 +7,7 @@ const ERC20Table = "ERC20Table";
 
 const _loadERC20 = function(): ERC20 {
     let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
-    if (erc20_table.length === 0) {
+    if (erc20_table.length == 0) {
         emit("Coin does not exists. Create it first");
         return new ERC20("", "", 0, 0);
     }    
@@ -24,7 +24,7 @@ const _saveERC20 = function(erc20 : ERC20): void {
  *  */
 export function createCoin(input: CreateInput): void {    
     let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
-    if (erc20_table.length !== 0) {
+    if (erc20_table.length != 0) {
         emit("Coin already exists");
         return;
     }

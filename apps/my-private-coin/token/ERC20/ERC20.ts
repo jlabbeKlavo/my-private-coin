@@ -186,7 +186,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
     _transfer(from: address, to: address, value: u64): void {
-        if (from.length === 0) {
+        if (from.length == 0) {
             revert(this.ERC20InvalidSender(from));
         }
         if (to.length == 0) {
@@ -203,7 +203,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * Emits a {Transfer} event.
      */
     _update(from: address, to: address, value: u64) : void {
-        if (from.length === 0) {
+        if (from.length == 0) {
             // Overflow check required: The rest of the code assumes that totalSupply never overflows
             this._totalSupply += value;
         } else {
@@ -215,7 +215,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
             this.account(from).balance = fromBalance - value;            
         }
 
-        if (to.length === 0) {
+        if (to.length == 0) {
             // Overflow not possible: value <= totalSupply or value <= fromBalance <= totalSupply.
             this._totalSupply -= value;
         } else {
@@ -235,7 +235,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * NOTE: This function is not virtual, {_update} should be overridden instead.
      */
     mint(account: address, value: u64) : void {
-        if (account.length === 0) {
+        if (account.length == 0) {
             revert(this.ERC20InvalidReceiver(account));
         }
         this._update("", account, value);
@@ -250,7 +250,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * NOTE: This function is not virtual, {_update} should be overridden instead
      */
     burn(account: address, value: u64) : void {
-        if (account.length === 0) {
+        if (account.length == 0) {
             revert(this.ERC20InvalidSender(account));
         }
         this._update(account, "", value);
@@ -293,10 +293,10 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * Requirements are the same as {_approve}.
      */
     _approveEmit(owner: address, spender: address, value: u64, emitEvent: boolean) : void {
-        if (owner.length === 0) {
+        if (owner.length == 0) {
             revert(this.ERC20InvalidApprover(owner));
         }
-        if (spender.length === 0) {
+        if (spender.length == 0) {
             revert(this.ERC20InvalidSpender(spender));
         }
         this.account(owner).addToAllowance(spender, value);
@@ -341,7 +341,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * @dev Returns the account associated with `account`.
      */
     accountHolder(account: address) : boolean {
-        return this.account(account).owner.length !== 0;
+        return this.account(account).owner.length != 0;
     }
 
     /**

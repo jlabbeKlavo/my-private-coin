@@ -15,7 +15,7 @@ export class IERC20Errors {
      */
     ERC20InsufficientBalance(sender: address, balance: u64, needed: u64): error {
         let message = `Insufficient Balance (${balance} < ${needed})`;
-        if (sender.length !== 0) {
+        if (sender.length != 0) {
             message += ` for ${sender}`;
         }        
         return message;
@@ -27,7 +27,7 @@ export class IERC20Errors {
      */
     ERC20InvalidSender(sender: address) : error {
         let message = `Invalid Sender`;
-        if (sender.length !== 0) {
+        if (sender.length != 0) {
             message += ` from ${sender}`;
         }        
         return message;
@@ -39,7 +39,7 @@ export class IERC20Errors {
      */
     ERC20InvalidReceiver(receiver: address) : error {
         let message = `Invalid Receiver`;
-        if (receiver.length !== 0) {
+        if (receiver.length != 0) {
             message += ` from ${receiver}`;
         }        
         return message;
@@ -53,7 +53,7 @@ export class IERC20Errors {
      */
     ERC20InsufficientAllowance(spender: address, allowance: u64, needed: u64) : error {
         let message = `Insufficient Allowance (${allowance} < ${needed})`;
-        if (spender.length !== 0) {
+        if (spender.length != 0) {
             message += ` for ${spender}`;
         }        
         return message;

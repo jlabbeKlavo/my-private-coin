@@ -36,7 +36,7 @@ export class Account {
 
     addToAllowance(spender: address, value: u64): void {
         let index = this.findAllowance(spender);
-        if (index !== -1) {
+        if (index != -1) {
             this.allowance[index].value += value;
         } else {
             this.allowance.push(new Allowance(spender, value));
@@ -45,7 +45,7 @@ export class Account {
 
     subtractFromAllowance(spender: address, value: u64): void {
         let index = this.findAllowance(spender);
-        if (index !== -1) {
+        if (index != -1) {
             this.allowance[index].value -= value;
         } else {
             this.allowance.push(new Allowance(spender, 0));
@@ -54,7 +54,7 @@ export class Account {
 
     getAllowance(spender: address): u64 {
         let index = this.findAllowance(spender);
-        if (index !== -1) {
+        if (index != -1) {
             return this.allowance[index].value;
         }
         return 0;
