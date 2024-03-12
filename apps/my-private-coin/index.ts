@@ -130,7 +130,7 @@ export function allowance(input: AllowanceInput): void {
     }
     if (!erc20.accountHolder(input.owner) || !erc20.accountHolder(input.spender))
         return;
-    erc20.allowance(input.owner, input.spender);    
+    emit(`Allowance for ${input.spender} on ${input.owner} account is ${erc20.allowance(input.owner, input.spender)}`);    ;    
 }
 
 /**
