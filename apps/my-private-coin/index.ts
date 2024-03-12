@@ -28,7 +28,6 @@ export function createCoin(input: CreateInput): void {
         emit("Coin already exists");
         return;
     }
-    emit("Coin does not exist yet, creating it");
     let erc20 = new ERC20(input.name, input.symbol, input.decimals, input.totalSupply);    
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
     emit("Coin created successfully");
