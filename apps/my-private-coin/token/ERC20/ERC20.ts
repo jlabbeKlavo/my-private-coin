@@ -35,6 +35,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
     _balances: Map<address, u64>;
     _allowances: Map<address, Map<address, u64>>;
 
+    _decimals: u8;
     _totalSupply: u64;
     _name: string;
     _symbol: string;
@@ -45,10 +46,11 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * All two of these values are immutable: they can only be set once during
      * construction.
      */
-    constructor(name_: string, symbol_: string, totalSupply_: u64) {
+    constructor(name_: string, symbol_: string, decimals_: u8, totalSupply_: u64) {
         super();
         this._name = name_;
         this._symbol = symbol_;
+        this._decimals = decimals_;
         this._totalSupply = totalSupply_;
         this._balances = new Map<address, u64>();
         this._allowances = new Map<address, Map<address, u64>>();
@@ -83,7 +85,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
     decimals() : u8 {
-        return 18;
+        return this._decimals;
     }
 
     /**

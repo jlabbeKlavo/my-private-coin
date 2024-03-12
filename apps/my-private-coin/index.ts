@@ -1,9 +1,24 @@
 import { JSON, Ledger } from "@klave/sdk"
 import { ERC20 } from "./token/ERC20/ERC20"
 import { emit } from "./klave/types"
-import { TransferInput, ApproveInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput } from "./klave/ERC20/ERC20Inputs";
+import { CreateInput, TransferInput, ApproveInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput } from "./klave/ERC20/ERC20Inputs";
 
 const ERC20Table = "ERC20Table";
+
+
+/** 
+ * @transaction create coin
+ *  */
+export function create(CreateInput): void {    
+    let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
+    if (erc20_table.length === 0) {
+        emit("Coin already exists");
+        return;
+    }
+    let erc20 = new ERC20(CreateInput.name, CreateInput.symbol, CreateInput.decimals, CreateInput.totalSupply);
+    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    emit("Coin created successfully");
+}
 
 /** 
  * @query return name

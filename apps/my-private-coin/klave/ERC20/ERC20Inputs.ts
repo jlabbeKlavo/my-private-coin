@@ -1,6 +1,14 @@
 import { JSON } from "@klave/sdk"
 
 @serializable
+export class CreateInput {
+    name!: string;
+    symbol!: string;
+    decimals!: u64;
+    totalSupply!: u64;
+}
+
+@serializable
 export class TransferInput {    
     to!: string;
     value!: u64;    
