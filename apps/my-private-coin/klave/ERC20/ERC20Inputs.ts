@@ -4,7 +4,7 @@ import { JSON } from "@klave/sdk"
 export class CreateInput {
     name!: string;
     symbol!: string;
-    decimals!: u64;
+    decimals!: u8;
     totalSupply!: u64;
 }
 

@@ -7,15 +7,16 @@ const ERC20Table = "ERC20Table";
 
 
 /** 
- * @transaction create coin
+ * @transaction 
+ * @param {CreateInput} - A parsed input argument containing the name, symbol, decimals and total supply of the currency
  *  */
-export function create(CreateInput): void {    
+export function create(input: CreateInput): void {    
     let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
     if (erc20_table.length === 0) {
         emit("Coin already exists");
         return;
     }
-    let erc20 = new ERC20(CreateInput.name, CreateInput.symbol, CreateInput.decimals, CreateInput.totalSupply);
+    let erc20 = new ERC20(input.name, input.symbol, input.decimals, input.totalSupply);
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
     emit("Coin created successfully");
 }
