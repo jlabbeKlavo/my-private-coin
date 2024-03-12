@@ -347,5 +347,6 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
      */
     createAccount(account: address) : void {
         this._accounts.push(new Account(account, 0));
+        emit(`Account for ${account} successfully created`);
     }
 }
