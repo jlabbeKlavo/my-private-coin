@@ -334,7 +334,7 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
             }
         }
         emit(`Account for ${account} does not exist`)
-        return new Account(account, 0);
+        return new Account("", 0);
     }
 
     /**
