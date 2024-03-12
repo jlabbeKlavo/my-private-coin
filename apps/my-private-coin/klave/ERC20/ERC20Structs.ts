@@ -1,6 +1,7 @@
 import {JSON} from "@klave/sdk"
 import {address} from "../../klave/types"
 
+
 @serializable
 export class Allowance {
     spender: address;
