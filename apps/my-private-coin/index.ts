@@ -5,6 +5,18 @@ import { CreateInput, TransferInput, ApproveInput, TransferFromInput, AllowanceI
 
 const ERC20Table = "ERC20Table";
 
+export function loadERC20(): ERC20 {
+    let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
+    if (erc20_table.length === 0) {
+        emit("Coin does not exists. Create it first");
+        return new ERC20("", "", 0, 0);
+    }    
+    return JSON.parse<ERC20>(erc20_table);
+}
+
+export function saveERC20(erc20: ERC20): void {
+    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+}
 
 /** 
  * @transaction 
@@ -18,8 +30,8 @@ export function create(input: CreateInput): void {
     }
     emit("Coin does not exist yet, creating it");
     let erc20 = new ERC20(input.name, input.symbol, input.decimals, input.totalSupply);
-    // let erc20_json = JSON.stringify<ERC20>(erc20);
-    // emit(erc20_json);
+    let erc20_json = JSON.stringify<ERC20>(erc20);
+    emit(erc20_json);
     //Ledger.getTable(ERC20Table).set("ALL", erc20_json);
     emit("Coin created successfully");
 }
@@ -28,7 +40,7 @@ export function create(input: CreateInput): void {
  * @query return name
  *  */
 export function name(): void {    
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     emit(`Name is ${erc20.name()}`);    
 }
 
@@ -36,7 +48,7 @@ export function name(): void {
  * @query return symbol
  *  */
 export function symbol(): void {    
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     emit(`Symbol is ${erc20.symbol()}`);    
 }
 
@@ -44,7 +56,7 @@ export function symbol(): void {
  * @query return symbol
  *  */
 export function decimals(): void {    
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     emit(`Symbol is ${erc20.decimals()}`);    
 }
 
@@ -52,7 +64,7 @@ export function decimals(): void {
  * @query return total supply of the currency
  *  */
 export function totalSupply(): void {    
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     emit(`Total Supply is ${erc20.totalSupply()}`);    
 }
 
@@ -61,7 +73,7 @@ export function totalSupply(): void {
  * @param {string} owner - the address of the owner, takes the sender's address if not provided
  *  */
 export function balanceOf(owner: string): void {
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     emit(`Balance for ${owner} is ${erc20.balanceOf(owner)}`);    
 }
 
@@ -70,7 +82,7 @@ export function balanceOf(owner: string): void {
  * @param {TransferInput} - A parsed input argument containing the "to" address and the value to be paid
  *  */
 export function transfer(input: TransferInput): void {
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     erc20.transfer(input.to, input.value);
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
 }
@@ -80,7 +92,7 @@ export function transfer(input: TransferInput): void {
  * @param {ApproveInput} - A parsed input argument containing the address of the spender and the value to be credited
  *  */
 export function approve(input: ApproveInput): void {
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     erc20.approve(input.spender, input.value);
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
 }
@@ -90,7 +102,7 @@ export function approve(input: ApproveInput): void {
  * @param {TransferFromInput} - A parsed input argument containing the "from" address, the "to" address and the value to be transferred
  *  */
 export function transferFrom(input: TransferFromInput): void {
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     erc20.transferFrom(input.from, input.to, input.value);
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
 }
@@ -100,7 +112,7 @@ export function transferFrom(input: TransferFromInput): void {
  * @param {AllowanceInput} - A parsed input argument containing the address of the owner and the address of the spender
  *  */
 export function allowance(input: AllowanceInput): void {
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
+    let erc20 = loadERC20();
     erc20.allowance(input.owner, input.spender);    
 }
 
@@ -109,8 +121,8 @@ export function allowance(input: AllowanceInput): void {
  * @param {IncreaseAllowanceInput} - A parsed input argument containing the address of the spender and the amount to be added
  */
 export function increaseAllowance(input: IncreaseAllowanceInput): void {
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));
-    erc20.increase_allowance(input.spender, input.addedValue);
+    let erc20 = loadERC20();
+    erc20.increaseAllowance(input.spender, input.addedValue);
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
 }
 
@@ -119,8 +131,8 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
  * @param {DecreaseAllowanceInput} - A parsed input argument containing the address of the spender and the amount to be subtracted
  */
 export function decreaseAllowance(input: DecreaseAllowanceInput): void {
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));    
-    erc20.decrease_allowance(input.spender, input.subtractedValue);
+    let erc20 = loadERC20();
+    erc20.decreaseAllowance(input.spender, input.subtractedValue);
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
 }
 
@@ -129,7 +141,7 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
  * @param {MintInput} - A parsed input argument containing the address of the recipient and the amount of tokens to be created
  */
 export function mint(input: MintInput): void {
-    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));    
+    let erc20 = loadERC20();
     erc20.mint(input.to, input.value);
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
 }
