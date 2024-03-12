@@ -329,9 +329,11 @@ export class ERC20 extends IERC20Events implements IERC20, IERC20Metadata {
     account(account: address) : Account {
         for (let i = 0; i < this._accounts.length; i++) {
             if (this._accounts[i].owner == account) {
+                emit(`Account for ${account} successfully retrieved`);
                 return this._accounts[i];
             }
         }
+        emit(`Account for ${account} does not exist`)
         return new Account(account, 0);
     }
 

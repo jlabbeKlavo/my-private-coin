@@ -154,9 +154,10 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
  */
 export function mint(input: MintInput): void {
     let erc20 = _loadERC20();    
-    if (input.to.length === 0) {
-        input.to = Context.get('sender');
+    if (input.to.length == 0) {
+        input.to = Context.get('sender');        
     }
+    emit(`input.to is ${input.to}`)
     if (!erc20.accountHolder(input.to)) {
         erc20.createAccount(input.to);
     }        
@@ -170,7 +171,7 @@ export function mint(input: MintInput): void {
  */
 export function burn(input: BurnInput): void {
     let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));    
-    if (input.from.length === 0) {
+    if (input.from.length == 0) {
         input.from = Context.get('sender');
     }
     if (!erc20.accountHolder(input.from)) {
