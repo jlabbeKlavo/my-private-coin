@@ -1,10 +1,4 @@
-import { JSON } from '@klave/sdk';
-
-@serializable
-export class ErrorMessage {
-    success!: boolean;
-    message!: string;
-}
+import { JSON } from "@klave/sdk"
 
 @serializable
 export class TransferInput {    
