@@ -1,184 +1,68 @@
-import { Notifier, Ledger, JSON, Crypto, Context } from '@klave/sdk';
-import { ApproveInput, ErrorMessage, TransferInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput, BurnFromInput } from './types';
-import { Account, Allowed } from './rosalind';
-import { Currency } from './eipx';
+import { JSON, Ledger, Context } from "@klave/sdk"
+import { ERC20 } from "./token/ERC20/ERC20"
+import { emit } from "./klave/types"
+import { CreateInput, TransferInput, ApproveInput, TransferFromInput, AllowanceInput, IncreaseAllowanceInput, DecreaseAllowanceInput, MintInput, BurnInput } from "./klave/ERC20/ERC20RouteArgs";
 
-const DefaultCoinTable = "DefaultCoinTable";
-const AccountsTable = "AccountsTable";
+const ERC20Table = "ERC20Table";
 
-class RegisteredAccount {
-    exists: bool;
-    details: Account;    
-
-    constructor(exists: bool, details: Account) {
-        this.exists = exists;
-        this.details = details;
-    }
+const _loadERC20 = function(): ERC20 {
+    let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
+    if (erc20_table.length == 0) {
+        emit("Coin does not exists. Create it first");
+        return new ERC20("", "", 0, 0);
+    }    
+    return JSON.parse<ERC20>(erc20_table);
 }
 
-
-/**
- * @function return a boolean value indicating whether the address is registered 
- * @param address - the address to be checked
- * */
-const recoverRegisteredAccounts = function(address: string): RegisteredAccount {
-    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length === 0) {     
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency not found`
-        });
-        return new RegisteredAccount(false, new Account());
-    }
-
-    let currencyDetails = JSON.parse<Currency>(currencyInfo);
-    let index = currencyDetails.findAccount(address);    
-    if (index === -1) {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Address ${address} not found in the list of registered accounts`
-        });
-        return new RegisteredAccount(false, new Account());
-    }
-
-    let account = Ledger.getTable(AccountsTable).get(address);
-    if (account.length === 0) {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Address not found in the accounts table`
-        });
-        return new RegisteredAccount(false, new Account());
-    }
-
-    let accountDetails = JSON.parse<Account>(account);    
-    return new RegisteredAccount(true, accountDetails);
+const _saveERC20 = function(erc20 : ERC20): void {
+    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
 }
 
 /** 
- * @transaction
- * @param {Currency} input - A parsed input argument
+ * @transaction 
+ * @param {CreateInput} - A parsed input argument containing the name, symbol, decimals and total supply of the currency
  *  */
-export function createCoin(input: Currency): void {
-    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
-    if (currencyInfo.length != 0) {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency already exists`
-        });
+export function createCoin(input: CreateInput): void {    
+    let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
+    if (erc20_table.length != 0) {
+        emit("Coin already exists");
         return;
     }
-
-    let currencyDetails = new Currency(input.name, input.symbol, input.totalSupply);
-
-    let key = Crypto.ECDSA.generateKey(input.name);
-    currencyDetails.id = key.name;
-    currencyDetails.publicKey = key.getPublicKey().getPem();    
-
-    Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Currency ${currencyDetails.name} created successfully`
-    });
+    let erc20 = new ERC20(input.name, input.symbol, input.decimals, input.totalSupply);    
+    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    emit("Coin created successfully");
 }
 
 /** 
- * @transaction
- * @param {Account} input - A parsed input argument
+ * @query return name
  *  */
-export function openAccount(accountInfo: Account): void {
-    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
-    if (currencyInfo.length === 0) {                    
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency not found`
-        });
-        return;
-    }
-    let ctx_sender = Context.get('sender');
-    Notifier.sendString(`ctx_sender = (${ctx_sender})`);
-    let account = Ledger.getTable(AccountsTable).get(ctx_sender);
-    if (account.length === 0) {
-        let accountDetails = new Account();
-        accountDetails.accountType = accountInfo.accountType;
-        accountDetails.balance = accountInfo.balance;
-        Ledger.getTable(AccountsTable).set(ctx_sender, JSON.stringify<Account>(accountDetails));
-
-        let currencyDetails = JSON.parse<Currency>(currencyInfo);
-        currencyDetails.accounts.push(ctx_sender);
-        Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
-
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Account created successfully`
-        });
-    } else {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Account already exists`
-        });
-    }
+export function name(): void {    
+    let erc20 = _loadERC20();
+    emit(`Name is ${erc20.name()}`);    
 }
 
 /** 
- * @query
- * @param {Account} input - A parsed input argument
+ * @query return symbol
  *  */
-export function listAccounts(): void {
-    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");   
-
-    if (currencyInfo.length === 0) {                    
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency not found`
-        });
-        return;
-    }
-
-    let currencyDetails = JSON.parse<Currency>(currencyInfo);
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Accounts registered are the following: ${currencyDetails.accounts}`
-    });
+export function symbol(): void {    
+    let erc20 = _loadERC20();
+    emit(`Symbol is ${erc20.symbol()}`);    
 }
 
 /** 
- * @query
- * @param {Account} input - A parsed input argument
+ * @query return symbol
  *  */
-export function getAccount(): void {
-    let account = Ledger.getTable(AccountsTable).get(Context.get('sender'));   
-    if (account.length === 0) {                    
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Account not found`
-        });
-        return;
-    }
-    
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Account shows : ${account}`
-    });
+export function decimals(): void {    
+    let erc20 = _loadERC20();
+    emit(`Symbol is ${erc20.decimals()}`);    
 }
 
 /** 
  * @query return total supply of the currency
  *  */
-export function totalSupply(): void {
-    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length === 0) {     
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency not found`
-        });
-        return;
-    }
-    
-    let currencyDetails = JSON.parse<Currency>(currencyInfo);
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Total supply: ${currencyDetails.totalSupply}`
-    });
+export function totalSupply(): void {    
+    let erc20 = _loadERC20();
+    emit(`Total Supply is ${erc20.totalSupply()}`);    
 }
 
 /** 
@@ -186,19 +70,13 @@ export function totalSupply(): void {
  * @param {string} owner - the address of the owner, takes the sender's address if not provided
  *  */
 export function balanceOf(owner: string): void {
-    if (owner === "") {
-        owner = Context.get('sender');
+    let erc20 = _loadERC20();
+    if (owner.length == 0) {
+        owner = Context.get('sender');        
     }
-    let fromAccount = recoverRegisteredAccounts(owner);
-    if (!fromAccount.exists) {
+    if (!erc20.accountHolder(owner))
         return;
-    }
-
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Balance: ${fromAccount.details.balance}`
-    });
-    return;
+    emit(`Balance for ${owner} is ${erc20.balanceOf(owner)}`);    
 }
 
 /** 
@@ -206,32 +84,11 @@ export function balanceOf(owner: string): void {
  * @param {TransferInput} - A parsed input argument containing the "to" address and the value to be paid
  *  */
 export function transfer(input: TransferInput): void {
-    let from = Context.get('sender');
-    let fromAccount = recoverRegisteredAccounts(from);
-    let toAccount = recoverRegisteredAccounts(input.to);
-    if (!fromAccount.exists || !toAccount.exists) {
+    let erc20 = _loadERC20();
+    if (!erc20.accountHolder(Context.get('sender')) || !erc20.accountHolder(input.to))
         return;
-    }
-
-    if (fromAccount.details.balance < input.value) {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Insufficient balance on the payer account`
-        });
-        return;
-    }
-
-    fromAccount.details.balance -= input.value;
-    toAccount.details.balance += input.value;
-    Ledger.getTable(AccountsTable).set(from, JSON.stringify<Account>(fromAccount.details));
-    Ledger.getTable(AccountsTable).set(input.to, JSON.stringify<Account>(toAccount.details));
-
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Transfer successful`
-    });
-
-    return;
+    erc20.transfer(input.to, input.value);
+    _saveERC20(erc20);
 }
 
 /** 
@@ -239,24 +96,11 @@ export function transfer(input: TransferInput): void {
  * @param {ApproveInput} - A parsed input argument containing the address of the spender and the value to be credited
  *  */
 export function approve(input: ApproveInput): void {
-    let from = Context.get('sender');
-    let fromAccount = recoverRegisteredAccounts(from);
-    if (!fromAccount.exists)
+    let erc20 = _loadERC20();
+    if (!erc20.accountHolder(Context.get('sender')) || !erc20.accountHolder(input.spender))
         return;
-        
-    let index = fromAccount.details.findAllowed(input.spender);
-    if (index === -1) {        
-        fromAccount.details.allowed.push(new Allowed(input.spender, input.value));
-    }
-    else {
-        fromAccount.details.allowed[index].value += input.value;
-    }
-    
-    Ledger.getTable(AccountsTable).set(from, JSON.stringify<Account>(fromAccount.details));
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Approve successful`
-    });
+    erc20.approve(input.spender, input.value);
+    _saveERC20(erc20);
 }
 
 /** 
@@ -264,45 +108,14 @@ export function approve(input: ApproveInput): void {
  * @param {TransferFromInput} - A parsed input argument containing the "from" address, the "to" address and the value to be transferred
  *  */
 export function transferFrom(input: TransferFromInput): void {
-    let fromAccount = recoverRegisteredAccounts(input.from);
-    let toAccount = recoverRegisteredAccounts(input.to);
-    if (!fromAccount.exists || !toAccount.exists)
-        return;
-
-    if (fromAccount.details.balance < input.value) {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Insufficient balance`
-        });
-        return;
-    }        
-
-    let index = fromAccount.details.findAllowed(input.to);
-    if (index === -1) {   
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `No credit line found for owner ` + input.from + ` and spender ` + input.to
-        });
-        return;
+    let erc20 = _loadERC20();
+    if (input.from.length == 0) {
+        input.from = Context.get('sender');
     }
-
-    if (fromAccount.details.allowed[index].value < input.value) {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Insufficient allowance`
-        });
+    if (!erc20.accountHolder(input.from) || !erc20.accountHolder(input.to))
         return;
-    }
-
-    fromAccount.details.balance -= input.value;
-    toAccount.details.balance += input.value;
-    Ledger.getTable(AccountsTable).set(input.from, JSON.stringify<Account>(fromAccount.details));
-    Ledger.getTable(AccountsTable).set(input.to, JSON.stringify<Account>(toAccount.details));
-
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Transfer successful`
-    });
+    erc20.transferFrom(input.from, input.to, input.value);
+    _saveERC20(erc20);
 }
 
 /** 
@@ -310,27 +123,13 @@ export function transferFrom(input: TransferFromInput): void {
  * @param {AllowanceInput} - A parsed input argument containing the address of the owner and the address of the spender
  *  */
 export function allowance(input: AllowanceInput): void {
-    if (input.owner === "") {
+    let erc20 = _loadERC20();
+    if (input.owner.length == 0) {
         input.owner = Context.get('sender');
     }
-    let fromAccount = recoverRegisteredAccounts(input.owner);
-    if (!fromAccount.exists) {
+    if (!erc20.accountHolder(input.owner) || !erc20.accountHolder(input.spender))
         return;
-    }
-
-    let index = fromAccount.details.findAllowed(input.spender);
-    if (index === -1) {        
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `No credit line found for owner ` + input.owner + ` and spender ` + input.spender
-        });
-        return;
-    }
-    
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Allowance: ${fromAccount.details.allowed[index].value}`
-    });
+    emit(`Allowance for ${input.spender} on ${input.owner} account is ${erc20.allowance(input.owner, input.spender)}`);    ;    
 }
 
 /**
@@ -338,34 +137,11 @@ export function allowance(input: AllowanceInput): void {
  * @param {IncreaseAllowanceInput} - A parsed input argument containing the address of the spender and the amount to be added
  */
 export function increaseAllowance(input: IncreaseAllowanceInput): void {
-    let from = Context.get('sender');
-    let fromAccount = recoverRegisteredAccounts(from);
-    if (!fromAccount.exists) {
+    let erc20 = _loadERC20();
+    if (!erc20.accountHolder(Context.get('sender')) || !erc20.accountHolder(input.spender))
         return;
-    }
-
-    let index = fromAccount.details.findAllowed(input.spender);
-    if (index === -1) {        
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `No credit line found for owner ` + from + ` and spender ` + input.spender
-        });
-        return;
-    }
-            
-    if (fromAccount.details.allowed[index].value > fromAccount.details.balance) {        
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Insufficient balance`
-        });    
-    }    
-
-    fromAccount.details.allowed[index].value += input.addedValue;
-    Ledger.getTable(AccountsTable).set(from, JSON.stringify<Account>(fromAccount.details));
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Allowance increased successfully`
-    });    
+    erc20.increaseAllowance(input.spender, input.addedValue);
+    _saveERC20(erc20);
 }
 
 /**
@@ -373,34 +149,11 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
  * @param {DecreaseAllowanceInput} - A parsed input argument containing the address of the spender and the amount to be subtracted
  */
 export function decreaseAllowance(input: DecreaseAllowanceInput): void {
-    let from = Context.get('sender');
-    let fromAccount = recoverRegisteredAccounts(from);
-    if (!fromAccount.exists) {
+    let erc20 = _loadERC20();
+    if (!erc20.accountHolder(Context.get('sender')) || !erc20.accountHolder(input.spender))
         return;
-    }        
-
-    let index = fromAccount.details.findAllowed(input.spender);
-    if (index === -1) {        
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `No allowance found`
-        });
-        return;
-    }
-                
-    if (fromAccount.details.allowed[index].value < input.subtractedValue) {        
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Insufficient allowance`
-        });    
-    }
-
-    fromAccount.details.allowed[index].value -= input.subtractedValue;
-    Ledger.getTable(AccountsTable).set(from, JSON.stringify<Account>(fromAccount.details));
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Allowance decreased successfully`
-    });    
+    erc20.decreaseAllowance(input.spender, input.subtractedValue);
+    _saveERC20(erc20);
 }
 
 /**
@@ -408,36 +161,15 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
  * @param {MintInput} - A parsed input argument containing the address of the recipient and the amount of tokens to be created
  */
 export function mint(input: MintInput): void {
-    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length === 0) {     
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency not found`
-        });
-        return;
+    let erc20 = _loadERC20();
+    if (input.to.length == 0) {
+        input.to = Context.get('sender');        
     }
-
-    let toAccount = recoverRegisteredAccounts(input.to);
-    if (!toAccount.exists)
-    {
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Recipient account not found`
-        });
-        return;
-    }
-
-    let currencyDetails = JSON.parse<Currency>(currencyInfo);
-    currencyDetails.totalSupply += input.value;
-    Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
-
-    toAccount.details.balance += input.value;
-    Ledger.getTable(AccountsTable).set(input.to, JSON.stringify<Account>(toAccount.details));
-
-    Notifier.sendJson<ErrorMessage>({
-        success: true,
-        message: `Mint successful`
-    });    
+    if (!erc20.accountHolder(input.to)) {
+        erc20.createAccount(input.to);
+    }        
+    erc20.mint(input.to, input.value);
+    _saveERC20(erc20);
 }
 
 /**
@@ -445,107 +177,13 @@ export function mint(input: MintInput): void {
  * @param {BurnInput} - A parsed input argument containing the address of the sender and the amount of tokens to be destroyed
  */
 export function burn(input: BurnInput): void {
-    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length === 0) {     
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency not found`
-        });
-        return;
+    let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));    
+    if (input.from.length == 0) {
+        input.from = Context.get('sender');
     }
-    else {
-        let currencyDetails = JSON.parse<Currency>(currencyInfo);
-        if (currencyDetails.totalSupply < input.value) {
-            Notifier.sendJson<ErrorMessage>({
-                success: false,
-                message: `Insufficient total supply`
-            });
-            return;
-        }        
-    
-        let fromAccount = recoverRegisteredAccounts(input.from);
-        if (!fromAccount.exists)
-            return;
-
-        if (fromAccount.details.balance < input.value) {
-            Notifier.sendJson<ErrorMessage>({
-                success: false,
-                message: `Insufficient balance`
-            });
-            return;
-        }        
-
-        currencyDetails.totalSupply -= input.value;
-        Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
-
-        fromAccount.details.balance -= input.value;
-        Ledger.getTable(AccountsTable).set(input.from, JSON.stringify<Account>(fromAccount.details));
-
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Burn successful`
-        });
-    }
-}
-
-/**
- * @transaction burn tokens from the spender's allowance for transaction sender account
- * @param {BurnFromInput} - A parsed input argument containing the address of the spender and the amount of tokens to be destroyed
- */
-export function burnFrom(input: BurnFromInput): void {
-    let currencyInfo = Ledger.getTable(DefaultCoinTable).get("Info");
-    if (currencyInfo.length === 0) {     
-        Notifier.sendJson<ErrorMessage>({
-            success: false,
-            message: `Currency not found`
-        });
-    }
-    else {    
-        let fromAccount = recoverRegisteredAccounts(Context.get('sender'));
-        if (!fromAccount.exists)
-            return;
-
-        let index = fromAccount.details.findAllowed(input.spender);
-        if (index === -1) {        
-            Notifier.sendJson<ErrorMessage>({
-                success: false,
-                message: `No spender allowance found`
-            });
-            return;
-        }
-                    
-        if (fromAccount.details.allowed[index].value < input.value) {            
-            Notifier.sendJson<ErrorMessage>({
-                success: false,
-                message: `Insufficient spender allowance`
-            });        
-            return;    
-        }
-        if (fromAccount.details.balance < input.value) {            
-            Notifier.sendJson<ErrorMessage>({
-                success: false,
-                message: `Insufficient balance`
-            });        
-            return;    
-        }
-        let currencyDetails = JSON.parse<Currency>(currencyInfo);         
-        if (currencyDetails.totalSupply < input.value) {
-            Notifier.sendJson<ErrorMessage>({
-                success: false,
-                message: `Insufficient total supply`
-            });                    
-        }
-        currencyDetails.totalSupply -= input.value;
-        Ledger.getTable(DefaultCoinTable).set("Info", JSON.stringify<Currency>(currencyDetails));
-
-        fromAccount.details.allowed[index].value -= input.value;
-        fromAccount.details.balance -= input.value;        
-        Ledger.getTable(AccountsTable).set(Context.get('sender'), JSON.stringify<Account>(fromAccount.details));
-
-
-        Notifier.sendJson<ErrorMessage>({
-            success: true,
-            message: `Allowance burn successful`
-        });
-    }
+    if (!erc20.accountHolder(input.from)) {
+        erc20.createAccount(input.from);
+    }        
+    erc20.burn(input.from, input.value);
+    _saveERC20(erc20);
 }
