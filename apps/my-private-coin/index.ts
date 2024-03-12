@@ -5,7 +5,7 @@ import { CreateInput, TransferInput, ApproveInput, TransferFromInput, AllowanceI
 
 const ERC20Table = "ERC20Table";
 
-export function loadERC20(): ERC20 {
+function loadERC20(): ERC20 {
     let erc20_table = Ledger.getTable(ERC20Table).get("ALL");
     if (erc20_table.length === 0) {
         emit("Coin does not exists. Create it first");
@@ -14,7 +14,7 @@ export function loadERC20(): ERC20 {
     return JSON.parse<ERC20>(erc20_table);
 }
 
-export function saveERC20(erc20: ERC20): void {
+function saveERC20(erc20: ERC20): void {
     Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
 }
 
@@ -29,10 +29,8 @@ export function create(input: CreateInput): void {
         return;
     }
     emit("Coin does not exist yet, creating it");
-    let erc20 = new ERC20(input.name, input.symbol, input.decimals, input.totalSupply);
-    let erc20_json = JSON.stringify<ERC20>(erc20);
-    emit(erc20_json);
-    //Ledger.getTable(ERC20Table).set("ALL", erc20_json);
+    let erc20 = new ERC20(input.name, input.symbol, input.decimals, input.totalSupply);    
+    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
     emit("Coin created successfully");
 }
 
@@ -84,7 +82,7 @@ export function balanceOf(owner: string): void {
 export function transfer(input: TransferInput): void {
     let erc20 = loadERC20();
     erc20.transfer(input.to, input.value);
-    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    saveERC20(erc20);
 }
 
 /** 
@@ -94,7 +92,7 @@ export function transfer(input: TransferInput): void {
 export function approve(input: ApproveInput): void {
     let erc20 = loadERC20();
     erc20.approve(input.spender, input.value);
-    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    saveERC20(erc20);
 }
 
 /** 
@@ -104,7 +102,7 @@ export function approve(input: ApproveInput): void {
 export function transferFrom(input: TransferFromInput): void {
     let erc20 = loadERC20();
     erc20.transferFrom(input.from, input.to, input.value);
-    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    saveERC20(erc20);
 }
 
 /** 
@@ -123,7 +121,7 @@ export function allowance(input: AllowanceInput): void {
 export function increaseAllowance(input: IncreaseAllowanceInput): void {
     let erc20 = loadERC20();
     erc20.increaseAllowance(input.spender, input.addedValue);
-    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    saveERC20(erc20);
 }
 
 /**
@@ -133,7 +131,7 @@ export function increaseAllowance(input: IncreaseAllowanceInput): void {
 export function decreaseAllowance(input: DecreaseAllowanceInput): void {
     let erc20 = loadERC20();
     erc20.decreaseAllowance(input.spender, input.subtractedValue);
-    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    saveERC20(erc20);
 }
 
 /**
@@ -143,7 +141,7 @@ export function decreaseAllowance(input: DecreaseAllowanceInput): void {
 export function mint(input: MintInput): void {
     let erc20 = loadERC20();
     erc20.mint(input.to, input.value);
-    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    saveERC20(erc20);
 }
 
 /**
@@ -153,5 +151,5 @@ export function mint(input: MintInput): void {
 export function burn(input: BurnInput): void {
     let erc20 = JSON.parse<ERC20>(Ledger.getTable(ERC20Table).get("ALL"));    
     erc20.burn(input.from, input.value);
-    Ledger.getTable(ERC20Table).set("ALL", JSON.stringify<ERC20>(erc20));
+    saveERC20(erc20);
 }
